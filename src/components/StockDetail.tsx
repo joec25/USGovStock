@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,10 @@ import {
   Calendar,
   User,
   ArrowRightLeft,
+  Newspaper,
+  AlertCircle,
+  BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import {
@@ -27,6 +31,7 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 
 interface StockDetailProps {
   ticker?: string;
@@ -38,6 +43,7 @@ interface StockDetailProps {
   performanceSinceTransaction?: number;
   historicalData?: Array<{ date: string; price: number }>;
   onBack?: () => void;
+  isPremium?: boolean;
 }
 
 const StockDetail = ({
@@ -62,7 +68,14 @@ const StockDetail = ({
     { date: "2024-03-15", price: 190 },
   ],
   onBack = () => {},
+  isPremium = false,
 }: StockDetailProps) => {
+  const [aiAnalysis, setAiAnalysis] = useState<string>("");
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
+  const [newsArticles, setNewsArticles] = useState<
+    Array<{ title: string; source: string; date: string; url: string }>
+  >([]);
+  const [isLoadingNews, setIsLoadingNews] = useState<boolean>(false);
   // Calculate chart dimensions
   const chartWidth = 1000;
   const chartHeight = 300;
@@ -102,6 +115,67 @@ const StockDetail = ({
   };
 
   const chartPoints = generatePoints();
+
+  // Simulate fetching AI analysis
+  const fetchAiAnalysis = () => {
+    setIsLoadingAnalysis(true);
+    // Simulate API delay
+    setTimeout(() => {
+      setAiAnalysis(
+        `Based on recent news and trading patterns, ${companyName} (${ticker}) has shown ${performanceSinceTransaction > 0 ? "positive" : "negative"} momentum following the ${transactionType} transaction by ${politician}. The company recently announced strong quarterly earnings, exceeding analyst expectations by 8%. Technical indicators suggest a potential ${performanceSinceTransaction > 0 ? "continued uptrend" : "reversal"} in the short term. Institutional investors have ${performanceSinceTransaction > 0 ? "increased" : "decreased"} their positions by approximately 3.5% over the past month. The stock's current valuation metrics are slightly ${performanceSinceTransaction > 0 ? "above" : "below"} the sector average, with a P/E ratio of ${Math.round(22 + performanceSinceTransaction / 2)}. Market sentiment remains ${performanceSinceTransaction > 0 ? "bullish" : "cautious"} due to broader economic factors and industry-specific developments.`,
+      );
+      setIsLoadingAnalysis(false);
+    }, 2000);
+  };
+
+  // Simulate fetching news articles
+  const fetchNewsArticles = () => {
+    setIsLoadingNews(true);
+    // Simulate API delay
+    setTimeout(() => {
+      setNewsArticles([
+        {
+          title: `${companyName} Reports Strong Q2 Earnings, Beats Expectations`,
+          source: "Financial Times",
+          date: "2024-06-12",
+          url: "#",
+        },
+        {
+          title: `Analyst Upgrades ${ticker} Stock to "Buy" Rating`,
+          source: "Bloomberg",
+          date: "2024-06-08",
+          url: "#",
+        },
+        {
+          title: `${companyName} Announces New Product Line, Shares Jump 3%`,
+          source: "CNBC",
+          date: "2024-06-03",
+          url: "#",
+        },
+        {
+          title: `Institutional Investors Increase Stakes in ${ticker}`,
+          source: "Wall Street Journal",
+          date: "2024-05-28",
+          url: "#",
+        },
+        {
+          title: `${companyName} CEO Discusses Future Growth Strategy in Interview`,
+          source: "Reuters",
+          date: "2024-05-22",
+          url: "#",
+        },
+      ]);
+      setIsLoadingNews(false);
+    }, 1500);
+  };
+
+  // Load AI analysis and news on component mount
+  useEffect(() => {
+    if (isPremium) {
+      fetchAiAnalysis();
+      fetchNewsArticles();
+    }
+  }, [isPremium]);
 
   return (
     <div className="bg-background p-6 rounded-lg w-full max-w-7xl mx-auto">
@@ -351,6 +425,153 @@ const StockDetail = ({
               </div>
             </TabsContent>
           </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* AI Analysis Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="mr-2 h-5 w-5" />
+                AI-Powered Stock Analysis
+              </CardTitle>
+              <CardDescription>
+                Insights based on recent news and market data
+              </CardDescription>
+            </div>
+            {isPremium && (
+              <Badge variant="outline" className="bg-primary/10 text-primary">
+                Premium Feature
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!isPremium ? (
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+              <AlertCircle className="h-12 w-12 text-muted-foreground" />
+              <h3 className="text-xl font-semibold text-center">
+                Premium Feature
+              </h3>
+              <p className="text-center text-muted-foreground max-w-md">
+                Upgrade to CongressTracker Premium to access AI-powered stock
+                analysis and insights based on recent news and market data.
+              </p>
+              <Button>Upgrade to Premium</Button>
+            </div>
+          ) : isLoadingAnalysis ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Generating AI analysis...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>AI-Generated Analysis</AlertTitle>
+                <AlertDescription>
+                  This analysis is generated by AI based on recent news and
+                  market data. Always conduct your own research before making
+                  investment decisions.
+                </AlertDescription>
+              </Alert>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm leading-relaxed">{aiAnalysis}</p>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchAiAnalysis}
+                  disabled={isLoadingAnalysis}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${isLoadingAnalysis ? "animate-spin" : ""}`}
+                  />
+                  Refresh Analysis
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* News Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center">
+                <Newspaper className="mr-2 h-5 w-5" />
+                Recent News
+              </CardTitle>
+              <CardDescription>
+                Latest news articles about {companyName} from the past 30 days
+              </CardDescription>
+            </div>
+            {isPremium && (
+              <Badge variant="outline" className="bg-primary/10 text-primary">
+                Premium Feature
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!isPremium ? (
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+              <AlertCircle className="h-12 w-12 text-muted-foreground" />
+              <h3 className="text-xl font-semibold text-center">
+                Premium Feature
+              </h3>
+              <p className="text-center text-muted-foreground max-w-md">
+                Upgrade to CongressTracker Premium to access the latest news and
+                articles about stocks traded by government officials.
+              </p>
+              <Button>Upgrade to Premium</Button>
+            </div>
+          ) : isLoadingNews ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Loading news articles...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {newsArticles.map((article, index) => (
+                <div
+                  key={index}
+                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <h3 className="font-medium">
+                    <a href={article.url} className="hover:underline">
+                      {article.title}
+                    </a>
+                  </h3>
+                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                    <span>{article.source}</span>
+                    <span className="mx-2">•</span>
+                    <span>{article.date}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchNewsArticles}
+                  disabled={isLoadingNews}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${isLoadingNews ? "animate-spin" : ""}`}
+                  />
+                  Refresh News
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
