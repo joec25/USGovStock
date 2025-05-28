@@ -23,6 +23,7 @@ interface PricingCardProps {
   buttonVariant?: "default" | "outline";
   onButtonClick?: () => void;
   popular?: boolean;
+  buttonHref?: string;
 }
 
 export default function PricingCard({
@@ -34,6 +35,7 @@ export default function PricingCard({
   buttonVariant = "default",
   onButtonClick,
   popular = false,
+  buttonHref,
 }: PricingCardProps) {
   return (
     <Card
@@ -73,8 +75,9 @@ export default function PricingCard({
           onClick={onButtonClick}
           variant={buttonVariant}
           className="w-full"
+          asChild={!!buttonHref}
         >
-          {buttonText}
+          {buttonHref ? <a href={buttonHref}>{buttonText}</a> : buttonText}
         </Button>
       </CardFooter>
     </Card>

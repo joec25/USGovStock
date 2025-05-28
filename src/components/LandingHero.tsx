@@ -16,11 +16,13 @@ export default function LandingHero() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button size="lg" className="gap-1">
-              Try Free Version <ArrowRight className="h-4 w-4" />
+            <Button size="lg" className="gap-1" asChild>
+              <a href="#demo">
+                Try Free Version <ArrowRight className="h-4 w-4" />
+              </a>
             </Button>
-            <Button size="lg" variant="outline">
-              View Pricing
+            <Button size="lg" variant="outline" asChild>
+              <a href="#pricing">View Pricing</a>
             </Button>
           </div>
         </div>

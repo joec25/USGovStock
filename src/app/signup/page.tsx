@@ -86,7 +86,7 @@ export default function SignupPage() {
             Create an account
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your information to get started with CongressTracker Premium
+            Enter your information to get started with CongressTracker
           </CardDescription>
         </CardHeader>
         <CardContent>

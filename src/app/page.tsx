@@ -5,8 +5,10 @@ import LandingHero from "@/components/LandingHero";
 import PricingSection from "@/components/PricingSection";
 import FreeDemoSection from "@/components/FreeDemoSection";
 import TradesTable from "@/components/TradesTable";
+import SearchBar from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 
 export default function Home() {
@@ -105,14 +107,7 @@ export default function Home() {
     fetchTrades();
   };
 
-  // Handle navigation to login/signup pages
-  const navigateToLogin = () => {
-    router.push("/login");
-  };
-
-  const navigateToSignup = () => {
-    router.push("/signup");
-  };
+  // Navigation is now handled by Link components
 
   // Handle trade row click
   const handleTradeClick = (trade) => {
@@ -143,31 +138,37 @@ export default function Home() {
             <span className="font-bold">CongressTracker</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a
-              href="#features"
+            <Link
+              href="/dashboard"
               className="text-sm font-medium hover:underline underline-offset-4"
             >
-              Features
-            </a>
+              Dashboard
+            </Link>
+            <Link
+              href="/news"
+              className="text-sm font-medium hover:underline underline-offset-4"
+            >
+              Senator News
+            </Link>
             <a
               href="#demo"
               className="text-sm font-medium hover:underline underline-offset-4"
             >
               Demo
             </a>
-            <a
-              href="#pricing"
-              className="text-sm font-medium hover:underline underline-offset-4"
-            >
-              Pricing
-            </a>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={navigateToLogin}>
-              Log In
+            <div className="hidden md:block mr-4">
+              <SearchBar
+                compact={true}
+                placeholder="Search stocks or politicians..."
+              />
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard">Dashboard</Link>
             </Button>
-            <Button size="sm" onClick={navigateToSignup}>
-              Sign Up
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/news">Senator News</Link>
             </Button>
           </div>
         </div>

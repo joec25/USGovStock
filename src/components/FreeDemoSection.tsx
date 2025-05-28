@@ -10,7 +10,9 @@ import { Button } from "./ui/button";
 import { Lock } from "lucide-react";
 
 export default function FreeDemoSection() {
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  // All features are now free, so we'll never show the upgrade prompt
+  const showUpgradePrompt = false;
+  // Removed upgrade prompt state
 
   // Limited data for free version
   const limitedTrades = [
@@ -47,7 +49,8 @@ export default function FreeDemoSection() {
   ];
 
   const handleRowClick = () => {
-    setShowUpgradePrompt(true);
+    // Now we can directly navigate to the stock detail page
+    window.location.href = "/dashboard";
   };
 
   return (
@@ -77,12 +80,10 @@ export default function FreeDemoSection() {
                 <Card className="bg-card p-4">
                   <CardContent className="p-0">
                     <div className="text-center p-4 text-muted-foreground">
-                      <p>
-                        Free version shows limited trade data (3 of 100+ trades)
-                      </p>
+                      <p>Sample trade data</p>
                       <p className="text-sm">
-                        Upgrade for full access to all trades and advanced
-                        filtering
+                        View all trades and use advanced filtering in the
+                        dashboard
                       </p>
                     </div>
                   </CardContent>
@@ -105,9 +106,10 @@ export default function FreeDemoSection() {
                 <Card className="bg-card p-4">
                   <CardContent className="p-0">
                     <div className="text-center p-4 text-muted-foreground">
-                      <p>Free version shows basic visualization</p>
+                      <p>Stock visualization</p>
                       <p className="text-sm">
-                        Upgrade for interactive charts and detailed analysis
+                        Interactive charts and detailed analysis available in
+                        the dashboard
                       </p>
                     </div>
                   </CardContent>
@@ -127,27 +129,14 @@ export default function FreeDemoSection() {
                 <Card className="bg-card p-4">
                   <CardContent className="p-0">
                     <div className="text-center p-4 text-muted-foreground">
-                      <p>Alert creation requires a premium subscription</p>
+                      <p>Create custom alerts</p>
                       <p className="text-sm">
-                        Upgrade to create custom alerts for politician trades
+                        Set up notifications for politician trades
                       </p>
                     </div>
                   </CardContent>
                 </Card>
-                <div className="relative max-w-3xl mx-auto">
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                    <div className="text-center p-6">
-                      <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-xl font-bold mb-2">
-                        Premium Feature
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        Create custom alerts to get notified when politicians
-                        make new trades
-                      </p>
-                      <Button>Upgrade to Premium</Button>
-                    </div>
-                  </div>
+                <div className="max-w-3xl mx-auto">
                   <AlertsManager />
                 </div>
               </>
@@ -171,7 +160,9 @@ function UpgradePrompt({ onClose }: { onClose: () => void }) {
             subscription.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button>Upgrade to Premium</Button>
+            <Button asChild>
+              <a href="#pricing">Upgrade to Premium</a>
+            </Button>
             <Button variant="outline" onClick={onClose}>
               Return to Demo
             </Button>

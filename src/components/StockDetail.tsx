@@ -68,7 +68,7 @@ const StockDetail = ({
     { date: "2024-03-15", price: 190 },
   ],
   onBack = () => {},
-  isPremium = false,
+  isPremium = true,
 }: StockDetailProps) => {
   const [aiAnalysis, setAiAnalysis] = useState<string>("");
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);

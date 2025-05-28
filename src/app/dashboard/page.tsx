@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import TradesTable from "@/components/TradesTable";
+import SearchBar from "@/components/SearchBar";
 import { useRouter } from "next/navigation";
-import { RefreshCw, LogOut, Bell, Settings, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { RefreshCw, LogOut, Bell, Settings, Newspaper } from "lucide-react";
+import Link from "next/link";
 import PopularStocksChart from "@/components/PopularStocksChart";
 
 export default function Dashboard() {
@@ -156,19 +157,11 @@ export default function Dashboard() {
               <path d="M4 3h16a2 2 0 0 1 2 2v2H2V5a2 2 0 0 1 2-2z" />
             </svg>
             <span className="font-bold">CongressTracker</span>
-            <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-md ml-2">
-              Premium
-            </span>
           </div>
 
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
             <div className="relative w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search stocks or politicians..."
-                className="w-full pl-9"
-              />
+              <SearchBar placeholder="Search stocks or politicians..." />
             </div>
           </div>
 
@@ -179,9 +172,15 @@ export default function Dashboard() {
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/news">
+                <Newspaper className="mr-2 h-4 w-4" />
+                Senator News
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              Log Out
+              Home
             </Button>
           </div>
         </div>
@@ -189,7 +188,7 @@ export default function Dashboard() {
 
       <main className="container py-6">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Premium Dashboard</h1>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
               Last updated: {lastRefreshed.toLocaleTimeString()}

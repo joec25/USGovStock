@@ -9,6 +9,9 @@ export default function StockPage() {
   const router = useRouter();
   const ticker = params.ticker as string;
 
+  // All features are now free
+  const isPremium = true;
+
   // In a real app, you would fetch the stock data based on the ticker
   // For now, we'll use sample data
   const stockData = {
@@ -27,7 +30,7 @@ export default function StockPage() {
       { date: "2024-06-12", price: 165 },
       { date: "2024-06-19", price: 170 },
     ],
-    isPremium: true, // Set to true to show premium features
+    isPremium: isPremium, // Set based on user's premium status
   };
 
   const handleBack = () => {

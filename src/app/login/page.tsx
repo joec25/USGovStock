@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and password to access your premium account
+            Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>

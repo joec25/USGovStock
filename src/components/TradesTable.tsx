@@ -55,7 +55,7 @@ interface TradesTableProps {
 }
 
 export default function TradesTable({
-  trades = defaultTrades,
+  trades = [],
   onRowClick = () => {},
   onSort = () => {},
   currentPage = 1,
@@ -75,6 +75,37 @@ export default function TradesTable({
       setSortDirection("asc");
     }
     onSort(column);
+
+    // Apply sorting locally if trades are available
+    if (trades.length > 0) {
+      const sortedTrades = [...trades].sort((a, b) => {
+        if (column === "politician") {
+          return sortDirection === "asc"
+            ? a.politician.localeCompare(b.politician)
+            : b.politician.localeCompare(a.politician);
+        } else if (column === "ticker") {
+          return sortDirection === "asc"
+            ? a.ticker.localeCompare(b.ticker)
+            : b.ticker.localeCompare(a.ticker);
+        } else if (column === "transactionDate") {
+          return sortDirection === "asc"
+            ? new Date(a.transactionDate).getTime() -
+                new Date(b.transactionDate).getTime()
+            : new Date(b.transactionDate).getTime() -
+                new Date(a.transactionDate).getTime();
+        } else if (column === "amount") {
+          // Simple string comparison for amount (could be improved with numeric parsing)
+          return sortDirection === "asc"
+            ? a.amount.localeCompare(b.amount)
+            : b.amount.localeCompare(a.amount);
+        } else if (column === "performance") {
+          return sortDirection === "asc"
+            ? a.performance - b.performance
+            : b.performance - a.performance;
+        }
+        return 0;
+      });
+    }
   };
 
   const SortIcon = ({ column }: { column: string }) => {
@@ -263,77 +294,3 @@ export default function TradesTable({
     </div>
   );
 }
-
-// Sample data for default display
-const defaultTrades: Trade[] = [
-  {
-    id: "1",
-    politician: "Nancy Pelosi",
-    ticker: "AAPL",
-    companyName: "Apple Inc.",
-    transactionDate: "2023-06-15",
-    transactionType: "buy",
-    amount: "$100,000 - $250,000",
-    performance: 12.5,
-  },
-  {
-    id: "2",
-    politician: "Mitch McConnell",
-    ticker: "MSFT",
-    companyName: "Microsoft Corporation",
-    transactionDate: "2023-06-10",
-    transactionType: "buy",
-    amount: "$50,000 - $100,000",
-    performance: 8.3,
-  },
-  {
-    id: "3",
-    politician: "Elizabeth Warren",
-    ticker: "AMZN",
-    companyName: "Amazon.com Inc.",
-    transactionDate: "2023-06-05",
-    transactionType: "sell",
-    amount: "$250,000 - $500,000",
-    performance: -3.2,
-  },
-  {
-    id: "4",
-    politician: "Ted Cruz",
-    ticker: "TSLA",
-    companyName: "Tesla, Inc.",
-    transactionDate: "2023-06-01",
-    transactionType: "buy",
-    amount: "$15,000 - $50,000",
-    performance: 22.7,
-  },
-  {
-    id: "5",
-    politician: "Bernie Sanders",
-    ticker: "GOOGL",
-    companyName: "Alphabet Inc.",
-    transactionDate: "2023-05-28",
-    transactionType: "sell",
-    amount: "$100,000 - $250,000",
-    performance: -1.8,
-  },
-  {
-    id: "6",
-    politician: "Marco Rubio",
-    ticker: "NFLX",
-    companyName: "Netflix, Inc.",
-    transactionDate: "2023-05-25",
-    transactionType: "buy",
-    amount: "$50,000 - $100,000",
-    performance: 15.4,
-  },
-  {
-    id: "7",
-    politician: "Alexandria Ocasio-Cortez",
-    ticker: "DIS",
-    companyName: "The Walt Disney Company",
-    transactionDate: "2023-05-20",
-    transactionType: "buy",
-    amount: "$15,000 - $50,000",
-    performance: 5.2,
-  },
-];
