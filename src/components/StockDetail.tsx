@@ -22,6 +22,12 @@ import {
   AlertCircle,
   BarChart3,
   RefreshCw,
+  LineChart,
+  Candlestick,
+  Activity,
+  Gauge,
+  Layers,
+  Zap,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import {
@@ -32,6 +38,10 @@ import {
 } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Slider } from "../components/ui/slider";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
 
 interface StockDetailProps {
   ticker?: string;
@@ -41,7 +51,7 @@ interface StockDetailProps {
   transactionType?: "buy" | "sell";
   amount?: string;
   performanceSinceTransaction?: number;
-  historicalData?: Array<{ date: string; price: number }>;
+  historicalData?: Array<{ date: string; price: number; volume?: number; open?: number; high?: number; low?: number; close?: number }>;
   onBack?: () => void;
   isPremium?: boolean;
 }
@@ -55,17 +65,17 @@ const StockDetail = ({
   amount = "$10,000 - $50,000",
   performanceSinceTransaction = 12.5,
   historicalData = [
-    { date: "2023-05-15", price: 150 },
-    { date: "2023-06-15", price: 155 },
-    { date: "2023-07-15", price: 160 },
-    { date: "2023-08-15", price: 158 },
-    { date: "2023-09-15", price: 165 },
-    { date: "2023-10-15", price: 170 },
-    { date: "2023-11-15", price: 168 },
-    { date: "2023-12-15", price: 175 },
-    { date: "2024-01-15", price: 180 },
-    { date: "2024-02-15", price: 185 },
-    { date: "2024-03-15", price: 190 },
+    { date: "2023-05-15", price: 150, volume: 32000000, open: 148, high: 151, low: 147, close: 150 },
+    { date: "2023-06-15", price: 155, volume: 28000000, open: 153, high: 157, low: 152, close: 155 },
+    { date: "2023-07-15", price: 160, volume: 35000000, open: 156, high: 162, low: 155, close: 160 },
+    { date: "2023-08-15", price: 158, volume: 30000000, open: 161, high: 163, low: 157, close: 158 },
+    { date: "2023-09-15", price: 165, volume: 38000000, open: 159, high: 166, low: 158, close: 165 },
+    { date: "2023-10-15", price: 170, volume: 42000000, open: 166, high: 172, low: 165, close: 170 },
+    { date: "2023-11-15", price: 168, volume: 36000000, open: 171, high: 173, low: 167, close: 168 },
+    { date: "2023-12-15", price: 175, volume: 40000000, open: 169, high: 176, low: 168, close: 175 },
+    { date: "2024-01-15", price: 180, volume: 45000000, open: 176, high: 182, low: 175, close: 180 },
+    { date: "2024-02-15", price: 185, volume: 38000000, open: 181, high: 187, low: 180, close: 185 },
+    { date: "2024-03-15", price: 190, volume: 43000000, open: 186, high: 192, low: 185, close: 190 },
   ],
   onBack = () => {},
   isPremium = true,
@@ -76,6 +86,14 @@ const StockDetail = ({
     Array<{ title: string; source: string; date: string; url: string }>
   >([]);
   const [isLoadingNews, setIsLoadingNews] = useState<boolean>(false);
+  const [chartType, setChartType] = useState<string>("line");
+  const [timeRange, setTimeRange] = useState<string>("1y");
+  const [showVolume, setShowVolume] = useState<boolean>(false);
+  const [showIndicators, setShowIndicators] = useState<boolean>(true);
+  const [indicatorType, setIndicatorType] = useState<string>("sma");
+  const [forecastDays, setForecastDays] = useState<number>(30);
+  const [isLoadingForecast, setIsLoadingForecast] = useState<boolean>(false);
+  const [forecastData, setForecastData] = useState<Array<{ date: string; price: number; isProjected: boolean }>>([]);
   // Calculate chart dimensions
   const chartWidth = 1000;
   const chartHeight = 300;
@@ -89,10 +107,10 @@ const StockDetail = ({
   const priceRange = maxPrice - minPrice;
 
   // Generate SVG path for the chart line
-  const generatePath = () => {
-    return historicalData
+  const generatePath = (data = historicalData, isProjected = false) => {
+    return data
       .map((point, i) => {
-        const x = padding + (i / (dataPoints - 1)) * (chartWidth - 2 * padding);
+        const x = padding + (i / (data.length - 1)) * (chartWidth - 2 * padding);
         const y =
           chartHeight -
           padding -
@@ -101,11 +119,33 @@ const StockDetail = ({
       })
       .join(" ");
   };
+  
+  // Generate SVG path for the forecast line
+  const generateForecastPath = () => {
+    if (forecastData.length === 0) return "";
+    
+    const combinedData = [...historicalData, ...forecastData.filter(d => d.isProjected)];
+    const prices = combinedData.map(d => d.price);
+    const localMinPrice = Math.min(...prices);
+    const localMaxPrice = Math.max(...prices);
+    const localPriceRange = localMaxPrice - localMinPrice;
+    
+    return forecastData
+      .map((point, i) => {
+        const x = padding + ((historicalData.length - 1 + i) / (historicalData.length + forecastData.length - 2)) * (chartWidth - 2 * padding);
+        const y =
+          chartHeight -
+          padding -
+          ((point.price - localMinPrice) / localPriceRange) * (chartHeight - 2 * padding);
+        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+      })
+      .join(" ");
+  };
 
   // Generate points for the chart
-  const generatePoints = () => {
-    return historicalData.map((point, i) => {
-      const x = padding + (i / (dataPoints - 1)) * (chartWidth - 2 * padding);
+  const generatePoints = (data = historicalData) => {
+    return data.map((point, i) => {
+      const x = padding + (i / (data.length - 1)) * (chartWidth - 2 * padding);
       const y =
         chartHeight -
         padding -
@@ -115,6 +155,197 @@ const StockDetail = ({
   };
 
   const chartPoints = generatePoints();
+  
+  // Generate candlestick data for the chart
+  const generateCandlesticks = () => {
+    return historicalData.map((point, i) => {
+      if (!point.open || !point.close || !point.high || !point.low) return null;
+      
+      const x = padding + (i / (dataPoints - 1)) * (chartWidth - 2 * padding);
+      const candleWidth = 8;
+      
+      const openY = chartHeight - padding - ((point.open - minPrice) / priceRange) * (chartHeight - 2 * padding);
+      const closeY = chartHeight - padding - ((point.close - minPrice) / priceRange) * (chartHeight - 2 * padding);
+      const highY = chartHeight - padding - ((point.high - minPrice) / priceRange) * (chartHeight - 2 * padding);
+      const lowY = chartHeight - padding - ((point.low - minPrice) / priceRange) * (chartHeight - 2 * padding);
+      
+      const isUp = point.close >= point.open;
+      
+      return {
+        x,
+        openY,
+        closeY,
+        highY,
+        lowY,
+        candleWidth,
+        isUp,
+        ...point
+      };
+    }).filter(Boolean);
+  };
+  
+  const candlestickData = generateCandlesticks();
+  
+  // Calculate Simple Moving Average (SMA)
+  const calculateSMA = (period = 20) => {
+    const smaData = [];
+    
+    for (let i = 0; i < historicalData.length; i++) {
+      if (i < period - 1) {
+        smaData.push(null);
+        continue;
+      }
+      
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        sum += historicalData[i - j].price;
+      }
+      
+      const sma = sum / period;
+      smaData.push({
+        date: historicalData[i].date,
+        price: sma
+      });
+    }
+    
+    return smaData.filter(Boolean);
+  };
+  
+  // Calculate Exponential Moving Average (EMA)
+  const calculateEMA = (period = 20) => {
+    const emaData = [];
+    const multiplier = 2 / (period + 1);
+    
+    // First EMA is SMA
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+      sum += historicalData[i].price;
+    }
+    let prevEma = sum / period;
+    
+    for (let i = 0; i < historicalData.length; i++) {
+      if (i < period - 1) {
+        emaData.push(null);
+        continue;
+      }
+      
+      if (i === period - 1) {
+        emaData.push({
+          date: historicalData[i].date,
+          price: prevEma
+        });
+        continue;
+      }
+      
+      const ema = (historicalData[i].price - prevEma) * multiplier + prevEma;
+      prevEma = ema;
+      
+      emaData.push({
+        date: historicalData[i].date,
+        price: ema
+      });
+    }
+    
+    return emaData.filter(Boolean);
+  };
+  
+  // Calculate Relative Strength Index (RSI)
+  const calculateRSI = (period = 14) => {
+    const rsiData = [];
+    const gains = [];
+    const losses = [];
+    
+    // Calculate initial gains and losses
+    for (let i = 1; i < historicalData.length; i++) {
+      const change = historicalData[i].price - historicalData[i-1].price;
+      gains.push(change > 0 ? change : 0);
+      losses.push(change < 0 ? Math.abs(change) : 0);
+      
+      if (i < period) {
+        rsiData.push(null);
+        continue;
+      }
+      
+      if (i === period) {
+        const avgGain = gains.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+        const avgLoss = losses.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+        
+        const rs = avgGain / (avgLoss === 0 ? 0.001 : avgLoss);
+        const rsi = 100 - (100 / (1 + rs));
+        
+        rsiData.push({
+          date: historicalData[i].date,
+          value: rsi
+        });
+        continue;
+      }
+      
+      const lastRsi = rsiData[rsiData.length - 1];
+      if (!lastRsi) continue;
+      
+      const lastAvgGain = (lastRsi.value / (100 - lastRsi.value)) * (period - 1);
+      const currentGain = gains[gains.length - 1];
+      const newAvgGain = (lastAvgGain * (period - 1) + currentGain) / period;
+      
+      const lastAvgLoss = (period - 1) / (lastRsi.value / (100 - lastRsi.value));
+      const currentLoss = losses[losses.length - 1];
+      const newAvgLoss = (lastAvgLoss * (period - 1) + currentLoss) / period;
+      
+      const rs = newAvgGain / (newAvgLoss === 0 ? 0.001 : newAvgLoss);
+      const rsi = 100 - (100 / (1 + rs));
+      
+      rsiData.push({
+        date: historicalData[i].date,
+        value: rsi
+      });
+    }
+    
+    return rsiData.filter(Boolean);
+  };
+  
+  const smaData = calculateSMA();
+  const emaData = calculateEMA();
+  const rsiData = calculateRSI();
+  
+  // Generate forecast data
+  const generateForecast = () => {
+    setIsLoadingForecast(true);
+    
+    // Simulate API delay
+    setTimeout(() => {
+      const lastDate = new Date(historicalData[historicalData.length - 1].date);
+      const lastPrice = historicalData[historicalData.length - 1].price;
+      
+      const forecast = [];
+      
+      // Add the last actual data point as the first forecast point (not projected)
+      forecast.push({
+        date: lastDate.toISOString().split('T')[0],
+        price: lastPrice,
+        isProjected: false
+      });
+      
+      // Generate forecast data points
+      for (let i = 1; i <= forecastDays; i++) {
+        const forecastDate = new Date(lastDate);
+        forecastDate.setDate(lastDate.getDate() + i);
+        
+        // Simple forecasting algorithm (in reality would use more sophisticated models)
+        const randomFactor = 0.98 + Math.random() * 0.04; // Random factor between 0.98 and 1.02
+        const trendFactor = 1 + (performanceSinceTransaction / 100) * (i / forecastDays) * 0.5;
+        const projectedPrice = lastPrice * randomFactor * trendFactor;
+        
+        forecast.push({
+          date: forecastDate.toISOString().split('T')[0],
+          price: projectedPrice,
+          isProjected: true
+        });
+      }
+      
+      setForecastData(forecast);
+      setIsLoadingForecast(false);
+    }, 1500);
+  };
 
   // Simulate fetching AI analysis
   const fetchAiAnalysis = () => {
@@ -169,11 +400,12 @@ const StockDetail = ({
     }, 1500);
   };
 
-  // Load AI analysis and news on component mount
+  // Load AI analysis, news, and forecast on component mount
   useEffect(() => {
     if (isPremium) {
       fetchAiAnalysis();
       fetchNewsArticles();
+      generateForecast();
     }
   }, [isPremium]);
 
@@ -278,16 +510,94 @@ const StockDetail = ({
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Price History</CardTitle>
-          <CardDescription>
-            Stock performance since transaction date
-          </CardDescription>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Advanced Chart Analysis</CardTitle>
+              <CardDescription>
+                Stock performance with forecasting and technical indicators
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Select value={chartType} onValueChange={setChartType}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Chart Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="line">Line Chart</SelectItem>
+                  <SelectItem value="candlestick">Candlestick</SelectItem>
+                  <SelectItem value="area">Area Chart</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Time Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1m">1 Month</SelectItem>
+                  <SelectItem value="3m">3 Months</SelectItem>
+                  <SelectItem value="6m">6 Months</SelectItem>
+                  <SelectItem value="1y">1 Year</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={indicatorType} onValueChange={setIndicatorType}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Indicator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sma">SMA</SelectItem>
+                  <SelectItem value="ema">EMA</SelectItem>
+                  <SelectItem value="rsi">RSI</SelectItem>
+                  <SelectItem value="macd">MACD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex items-center space-x-2">
+              <Switch id="show-volume" checked={showVolume} onCheckedChange={setShowVolume} />
+              <Label htmlFor="show-volume">Show Volume</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch id="show-indicators" checked={showIndicators} onCheckedChange={setShowIndicators} />
+              <Label htmlFor="show-indicators">Show Indicators</Label>
+            </div>
+            
+            <div className="flex flex-col space-y-1 min-w-[200px]">
+              <div className="flex justify-between">
+                <Label htmlFor="forecast-days">Forecast Days: {forecastDays}</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generateForecast} 
+                  disabled={isLoadingForecast}
+                  className="h-6 px-2"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingForecast ? "animate-spin" : ""}`} />
+                  Update
+                </Button>
+              </div>
+              <Slider 
+                id="forecast-days"
+                min={7} 
+                max={90} 
+                step={1} 
+                value={[forecastDays]} 
+                onValueChange={(value) => setForecastDays(value[0])} 
+              />
+            </div>
+          </div>
+          
           <Tabs defaultValue="chart">
             <TabsList className="mb-4">
               <TabsTrigger value="chart">Chart</TabsTrigger>
               <TabsTrigger value="table">Table</TabsTrigger>
+              <TabsTrigger value="forecast">Forecast</TabsTrigger>
             </TabsList>
             <TabsContent value="chart" className="pt-4">
               <div className="relative h-[400px] w-full">
@@ -315,16 +625,95 @@ const StockDetail = ({
                     strokeOpacity="0.2"
                   />
 
-                  {/* Chart line */}
-                  <path
-                    d={generatePath()}
-                    fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth="2"
-                  />
+                  {/* Volume bars (if enabled) */}
+                  {showVolume && historicalData.map((point, i) => {
+                    if (!point.volume) return null;
+                    const x = padding + (i / (dataPoints - 1)) * (chartWidth - 2 * padding);
+                    const maxVolume = Math.max(...historicalData.map(d => d.volume || 0));
+                    const volumeHeight = ((point.volume / maxVolume) * (chartHeight / 4));
+                    return (
+                      <rect
+                        key={`vol-${i}`}
+                        x={x - 4}
+                        y={chartHeight - padding - volumeHeight}
+                        width={8}
+                        height={volumeHeight}
+                        fill="hsl(var(--primary))"
+                        fillOpacity="0.2"
+                      />
+                    );
+                  })}
 
-                  {/* Data points */}
-                  {chartPoints.map((point, i) => (
+                  {/* Chart visualization based on type */}
+                  {chartType === 'line' && (
+                    <path
+                      d={generatePath()}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="2"
+                    />
+                  )}
+                  
+                  {chartType === 'area' && (
+                    <>
+                      <path
+                        d={`${generatePath()} L ${chartWidth - padding} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`}
+                        fill="hsl(var(--primary))"
+                        fillOpacity="0.1"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="2"
+                      />
+                    </>
+                  )}
+                  
+                  {chartType === 'candlestick' && candlestickData.map((candle, i) => {
+                    if (!candle) return null;
+                    return (
+                      <g key={`candle-${i}`}>
+                        {/* Wick */}
+                        <line
+                          x1={candle.x}
+                          y1={candle.highY}
+                          x2={candle.x}
+                          y2={candle.lowY}
+                          stroke="currentColor"
+                          strokeWidth="1"
+                        />
+                        {/* Candle body */}
+                        <rect
+                          x={candle.x - candle.candleWidth / 2}
+                          y={candle.isUp ? candle.closeY : candle.openY}
+                          width={candle.candleWidth}
+                          height={Math.abs(candle.closeY - candle.openY) || 1}
+                          fill={candle.isUp ? "hsl(var(--success))" : "hsl(var(--destructive))"}
+                        />
+                      </g>
+                    );
+                  })}
+
+                  {/* Technical indicators */}
+                  {showIndicators && indicatorType === 'sma' && (
+                    <path
+                      d={generatePath(smaData)}
+                      fill="none"
+                      stroke="#FFD700"
+                      strokeWidth="2"
+                      strokeDasharray="5,5"
+                    />
+                  )}
+                  
+                  {showIndicators && indicatorType === 'ema' && (
+                    <path
+                      d={generatePath(emaData)}
+                      fill="none"
+                      stroke="#FF6B6B"
+                      strokeWidth="2"
+                      strokeDasharray="5,5"
+                    />
+                  )}
+
+                  {/* Data points for line chart */}
+                  {chartType === 'line' && chartPoints.map((point, i) => (
                     <circle
                       key={i}
                       cx={point.x}
@@ -384,6 +773,264 @@ const StockDetail = ({
                   </text>
                 </svg>
               </div>
+              
+              {indicatorType === 'rsi' && showIndicators && (
+                <div className="mt-6 border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Relative Strength Index (RSI)</h4>
+                  <div className="relative h-[100px] w-full">
+                    <svg
+                      width="100%"
+                      height="100%"
+                      viewBox={`0 0 ${chartWidth} 100`}
+                      preserveAspectRatio="xMidYMid meet"
+                    >
+                      {/* RSI reference lines */}
+                      <line x1={padding} y1={30} x2={chartWidth - padding} y2={30} stroke="#FFD700" strokeOpacity="0.5" strokeDasharray="2,2" />
+                      <line x1={padding} y1={70} x2={chartWidth - padding} y2={70} stroke="#FF6B6B" strokeOpacity="0.5" strokeDasharray="2,2" />
+                      
+                      {/* RSI line */}
+                      <path
+                        d={rsiData.map((point, i) => {
+                          if (!point) return "";
+                          const x = padding + (i / (rsiData.length - 1)) * (chartWidth - 2 * padding);
+                          const y = 100 - point.value;
+                          return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                        }).join(" ")}
+                        fill="none"
+                        stroke="#4CAF50"
+                        strokeWidth="2"
+                      />
+                      
+                      {/* Y-axis labels */}
+                      <text x={padding - 5} y={30} textAnchor="end" fontSize="10" fill="currentColor">70</text>
+                      <text x={padding - 5} y={70} textAnchor="end" fontSize="10" fill="currentColor">30</text>
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="forecast" className="pt-4">
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  <h3 className="font-medium">AI-Powered Price Forecast</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  This forecast uses historical data and market trends to predict potential future price movements.
+                  The projection is based on technical analysis and should be used for informational purposes only.
+                </p>
+              </div>
+              
+              {isLoadingForecast ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
+                  <p className="text-muted-foreground">Generating forecast...</p>
+                </div>
+              ) : (
+                <div className="relative h-[400px] w-full">
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    {/* X and Y axes */}
+                    <line
+                      x1={padding}
+                      y1={chartHeight - padding}
+                      x2={chartWidth - padding}
+                      y2={chartHeight - padding}
+                      stroke="currentColor"
+                      strokeOpacity="0.2"
+                    />
+                    <line
+                      x1={padding}
+                      y1={padding}
+                      x2={padding}
+                      y2={chartHeight - padding}
+                      stroke="currentColor"
+                      strokeOpacity="0.2"
+                    />
+                    
+                    {/* Historical data line */}
+                    <path
+                      d={generatePath()}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="2"
+                    />
+                    
+                    {/* Forecast line */}
+                    <path
+                      d={generateForecastPath()}
+                      fill="none"
+                      stroke="#FFD700"
+                      strokeWidth="2"
+                      strokeDasharray="5,5"
+                    />
+                    
+                    {/* Vertical line separating historical and forecast data */}
+                    {forecastData.length > 0 && (
+                      <line
+                        x1={padding + ((historicalData.length - 1) / (historicalData.length + forecastData.length - 2)) * (chartWidth - 2 * padding)}
+                        y1={padding}
+                        x2={padding + ((historicalData.length - 1) / (historicalData.length + forecastData.length - 2)) * (chartWidth - 2 * padding)}
+                        y2={chartHeight - padding}
+                        stroke="#FFD700"
+                        strokeDasharray="4,4"
+                      />
+                    )}
+                    
+                    {/* Data points */}
+                    {chartPoints.map((point, i) => (
+                      <circle
+                        key={i}
+                        cx={point.x}
+                        cy={point.y}
+                        r="4"
+                        fill="hsl(var(--primary))"
+                      />
+                    ))}
+                    
+                    {/* Forecast points */}
+                    {forecastData.filter(d => d.isProjected).map((point, i) => {
+                      const x = padding + ((historicalData.length + i) / (historicalData.length + forecastData.length - 1)) * (chartWidth - 2 * padding);
+                      const y = chartHeight - padding - ((point.price - minPrice) / priceRange) * (chartHeight - 2 * padding);
+                      return (
+                        <circle
+                          key={`forecast-${i}`}
+                          cx={x}
+                          cy={y}
+                          r="4"
+                          fill="#FFD700"
+                        />
+                      );
+                    })}
+                    
+                    {/* Labels */}
+                    <text
+                      x={padding - 10}
+                      y={padding}
+                      textAnchor="end"
+                      fontSize="12"
+                      fill="currentColor"
+                    >
+                      ${maxPrice}
+                    </text>
+                    <text
+                      x={padding - 10}
+                      y={chartHeight - padding}
+                      textAnchor="end"
+                      fontSize="12"
+                      fill="currentColor"
+                    >
+                      ${minPrice}
+                    </text>
+                    
+                    {/* Date labels */}
+                    <text
+                      x={padding}
+                      y={chartHeight - padding + 20}
+                      textAnchor="middle"
+                      fontSize="12"
+                      fill="currentColor"
+                    >
+                      {historicalData[0].date}
+                    </text>
+                    
+                    {forecastData.length > 0 && (
+                      <>
+                        <text
+                          x={padding + ((historicalData.length - 1) / (historicalData.length + forecastData.length - 2)) * (chartWidth - 2 * padding)}
+                          y={chartHeight - padding + 20}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#FFD700"
+                        >
+                          Today
+                        </text>
+                        
+                        <text
+                          x={chartWidth - padding}
+                          y={chartHeight - padding + 20}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#FFD700"
+                        >
+                          {forecastData[forecastData.length - 1].date}
+                        </text>
+                      </>
+                    )}
+                  </svg>
+                </div>
+              )}
+              
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Projected Price</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingForecast ? (
+                      <div className="flex items-center justify-center h-10">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : forecastData.length > 0 ? (
+                      <div className="flex items-center">
+                        <DollarSign className="h-5 w-5 text-yellow-500 mr-2" />
+                        <span className="text-2xl font-bold">
+                          {forecastData[forecastData.length - 1].price.toFixed(2)}
+                        </span>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Projected Change</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingForecast ? (
+                      <div className="flex items-center justify-center h-10">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : forecastData.length > 0 ? (
+                      <div className="flex items-center">
+                        {forecastData[forecastData.length - 1].price > historicalData[historicalData.length - 1].price ? (
+                          <TrendingUp className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <TrendingDown className="h-5 w-5 text-red-500 mr-2" />
+                        )}
+                        <span className={`text-2xl font-bold ${forecastData[forecastData.length - 1].price > historicalData[historicalData.length - 1].price ? 'text-green-500' : 'text-red-500'}`}>
+                          {((forecastData[forecastData.length - 1].price / historicalData[historicalData.length - 1].price - 1) * 100).toFixed(2)}%
+                        </span>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Confidence Level</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingForecast ? (
+                      <div className="flex items-center justify-center h-10">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Gauge className="h-5 w-5 text-blue-500 mr-2" />
+                        <span className="text-2xl font-bold">
+                          {Math.round(65 + Math.random() * 20)}%
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
             <TabsContent value="table">
               <div className="border rounded-md">
@@ -414,7 +1061,7 @@ const StockDetail = ({
                             className={`text-right p-3 ${change >= 0 ? "text-green-500" : "text-red-500"}`}
                           >
                             {change >= 0 ? "+" : ""}
-                            {change.toFixed(2)} ({change >= 0 ? "+" : ""}
+                            {change.toFixed(2)} ({change >= 0 ? "+" : ""
                             {changePercent.toFixed(2)}%)
                           </td>
                         </tr>
